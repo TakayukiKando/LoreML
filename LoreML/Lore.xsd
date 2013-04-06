@@ -1,0 +1,1334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema" xmlns:lore="http://www.xgmtk.org/Lore"
+	xmlns:xhtml="http://www.w3.org/1999/xhtml" targetNamespace="http://www.xgmtk.org/Lore"
+	elementFormDefault="qualified">
+	<import namespace="http://www.w3.org/1999/xhtml"
+		schemaLocation="http://www.w3.org/2002/08/xhtml/xhtml1-strict.xsd" />
+	<annotation>
+		<documentation>TRPG(Table-talk Role Playing
+			Game)のルール、シナリオ他データを表現するXML語彙を定義する。</documentation>
+	</annotation>
+	<element name="unit">
+		<annotation>
+			<documentation>単位を定義する。
+				type属性とscale属性はどちらか一方だけが指定できる。
+				どちらもない場合はscaleが値1（単位なし）で指定されていると看做す。
+				数値は以下のルールで保持、表現される。
+				・type属性があるとき、typeが"integral"か"long"なら整数値、typeが"real"なら浮動小数点値。
+				・基底型が無指定（scale属性が指定され単位がない）であるとき、
+				sacaleが整数値なら整数値、sacaleが浮動小数点値の場合は浮動小数点値。
+				・scale属性の単位表記で指定される基底型が整数（"integral"か"long"）であるとき、
+				sacaleが整数値なら同じ型（"integral"か"long"）の整数値、sacaleが浮動小数点値の場合は誤り。
+				・scale属性の単位表記で指定される基底型が浮動小数点値であるときは
+				sacaleが整数値でも浮動小数点値でも値は浮動小数点値。
+				例：
+				&lt;unit dim="m" type="real"/&gt;…値が浮動小数点数値で表される新しい単位"m"の宣言。
+				&lt;unit dim="km" scale="1000m"/&gt;…1000mを1kmと宣言。基底は"m"なので値は浮動小数点数値で表される。
+				&lt;unit dim="sec" type="integral"/&gt;…値が整数値で表される新しい単位"sec"の宣言。
+				&lt;unit dim="R"
+				scale="12sec"/&gt;…1Rを12secと宣言。基底は"sec"なので値は整数値で表される。
+				&lt;unit dim="dozen" scale="12"/&gt;…1ダースを12と宣言。基底は整数なので値は整数値で表される。
+			</documentation>
+		</annotation>
+
+		<complexType>
+			<attribute name="dim" type="lore:UnitString" use="required">
+				<annotation>
+					<documentation>新規に宣言する単位を表す名前。
+						通常の名前（先頭に数字が来ず、記号、空白文字以外の文字列からなる名前）以外に"^"と"/"を使ったそれらの名前を組み合わせた組み立て単位の式を名前として使うことができる。
+						式中の"^"はべき乗、"/"は除算である。式中"/"は一度だけ許される。
+						単位の式は一般には単純にそういう文字列の名前として扱われる。
+						ただし単位の式を理解するアプリケーションがあっても構わない。
+					</documentation>
+				</annotation>
+			</attribute>
+			<attribute name="type" type="lore:BaseNumberTypes" use="optional">
+				<annotation>
+					<documentation>新規の単位を指定する時に基底型の数値表現を指定する。
+						integerならば32bit符号付き整数、longならば64bit符号付き整数、
+						realならばIEEE754の倍精度浮動小数点表現の実数となる。
+						scale属性と排他的に指定される。
+					</documentation>
+				</annotation>
+			</attribute>
+			<attribute use="optional" name="scale" type="lore:NumberWithUnit">
+				<annotation>
+					<documentation>基底として指定された型に対する倍率。省略時は1。
+						数値は単位付きの数値であるValueWithUnit型で表現される。
+						この数値に指定された単位が基底となる。 単位が省略された場合は単位のない数値が基底となる。
+						type属性とは排他的に指定される。
+					</documentation>
+				</annotation>
+			</attribute>
+		</complexType>
+	</element>
+
+	<simpleType name="DiceExpression">
+		<annotation>
+			<documentation>2D6+6のような書式でサイコロの仕様を表現する文字列の型</documentation>
+		</annotation>
+		<restriction base="string">
+			<whiteSpace value="collapse"></whiteSpace>
+			<pattern value="(\-|\+)?((\d+)|(\d*D\d*))((\-|\+)((\d+)|(\d*D\d*)))*">
+			</pattern>
+		</restriction>
+	</simpleType>
+
+	<element name="enum" type="lore:Enum">
+		<annotation>
+			<documentation>
+				列挙型を定義する要素。列挙型に属する名前（NMTOKEN型）を","で区切って並べたリストによって宣言する。
+			</documentation>
+		</annotation>
+	</element>
+
+	<simpleType name="NIL">
+		<annotation>
+			<documentation>NIL値を表す型。長さ0の文字列である。</documentation>
+		</annotation>
+		<restriction base="string">
+			<length value="0"></length>
+			<enumeration value=""></enumeration>
+		</restriction>
+	</simpleType>
+
+
+	<simpleType name="Number">
+		<annotation>
+			<documentation>数値を表現する型。
+				数値は整数リテラルまたは浮動小数点数リテラルとして記述する。
+				数値にはNaN（非数）、INF（正の無限大）、-INF（負の無限大）が含まれる。
+			</documentation>
+		</annotation>
+
+		<restriction base="string">
+			<whiteSpace value="collapse"></whiteSpace>
+			<pattern value="(-?INF|NaN|(-?(|0|(0?\.)|([1-9]\d*\.?))\d*(E-?[1-9]\d*)?))"></pattern>
+		</restriction>
+	</simpleType>
+
+
+	<simpleType name="NumberWithUnit">
+		<annotation>
+			<documentation>単位付きの数値を表現する型。
+				数値は整数リテラルまたは浮動小数点数リテラルとして記述する。
+				数値にはNaN（非数）、INF（正の無限大）、-INF（負の無限大）が含まれる。
+				単位の指定は整数リテラルまたは実数リテラルの後ろに(単位名)の形式で書く。
+				単位は省略でき、省略された場合は単なる整数値、実数値を表す。
+				単位名はunit要素により宣言されている必要がある。
+			</documentation>
+		</annotation>
+		<restriction base="string">
+			<whiteSpace value="collapse"></whiteSpace>
+			<pattern
+				value="(-?INF|NaN|(-?(|0|(0?\.)|([1-9]\d*\.?))\d*(E-?[1-9]\d*)?))(\(\D(\w|\^)*(/\D(\w|\^)*)?\))?"></pattern>
+		</restriction>
+	</simpleType>
+
+
+	<simpleType name="Range">
+		<annotation>
+			<documentation>数値の対で範囲を表現する型。 数値は整数リテラルまたは浮動小数点数リテラルとして記述する。
+				数値にはINF（正の無限大）、-INF（負の無限大）が含まれる。（NaNはエラーとなる。）
+				範囲は開始カッコ（"("または"["）及び終了カッコ（")"または"]"）で挟まれた間に","で区切って2つの数値を書いて指定する。
+				2つの数値の内1つ目の数値（開始値）は2つ目の数値（終了値）以下でなければならない。
+				開始カッコが"("である場合、範囲は開始値を含まず、"["である場合、範囲は開始値を含む。
+				終了カッコが")"である場合、範囲は終了値を含まず、"]"である場合、範囲は終了値を含む。
+				カッコの指定および値の指定の結果、範囲に一つも数値が含まれなくなる場合があり得る。
+			</documentation>
+		</annotation>
+		<restriction base="string">
+			<pattern
+				value="(\(|\[)(-?INF|(-?(|0|(0\.)|([1-9]\d*\.?))\d*(E-?[1-9]\d*)?)),(-?INF|(-?(|0|(0\.)|([1-9]\d*\.?))\d*(E-?[1-9]\d*)?))(\]|\))">
+			</pattern>
+		</restriction>
+	</simpleType>
+
+
+	<simpleType name="RangeWithUnit">
+
+		<annotation>
+			<documentation>単位付きの数値の対で範囲を表現する型。 数値は整数リテラルまたは浮動小数点数リテラルとして記述する。
+				数値にはINF（正の無限大）、-INF（負の無限大）が含まれる。（NaNはエラーとなる。）
+				範囲は開始カッコ（"("または"["）及び終了カッコ（")"または"]"）で挟まれた間に","で区切って2つの数値を書いて指定する。
+				2つの数値の内1つ目の数値（開始値）は2つ目の数値（終了値）以下でなければならない。
+				開始カッコが"("である場合、範囲は開始値を含まず、"["である場合、範囲は開始値を含む。
+				終了カッコが")"である場合、範囲は終了値を含まず、"]"である場合、範囲は終了値を含む。
+				カッコの指定および値の指定の結果、範囲に一つも数値が含まれなくなる場合があり得る。
+				単位の指定は終了カッコの後ろに(単位名)の形式で書く。
+				単位は省略でき、省略された場合は単なる整数値、実数値の範囲を表す。
+				単位名はunit要素により宣言されている必要がある。
+			</documentation>
+		</annotation>
+		<restriction base="string">
+			<pattern
+				value="(\(|\[)(-?INF|(-?(|0|(0\.)|([1-9]\d*\.?))\d*(E-?[1-9]\d*)?)),(-?INF|(-?(|0|(0\.)|([1-9]\d*\.?))\d*(E-?[1-9]\d*)?))(\]|\))(\(\D(\w|\^)*(/\D(\w|\^)*)?\))?">
+			</pattern>
+		</restriction>
+	</simpleType>
+
+
+	<simpleType name="UnitString">
+		<annotation>
+			<documentation>単位名の型。
+				通常の名前（先頭に数字が来ず、記号、空白文字以外の文字列からなる名前）以外に"^"と"/"を使ったそれらの名前を組み合わせた組み立て単位の式を名前として使うことができる。
+				式中の"^"はべき乗、"/"は除算である。式中"/"は一度だけ許される。
+				単位の式は一般には単純にそういう文字列の名前として扱われる。
+				ただし単位の式を理解するアプリケーションがあっても構わない。
+			</documentation>
+		</annotation>
+		<restriction base="string">
+			<pattern value="\D(\w|\^)*(/\D(\w|\^)*)?"></pattern>
+		</restriction>
+	</simpleType>
+
+
+	<simpleType name="BaseNumberTypes">
+		<annotation>
+			<documentation>
+				数値の表現形式を示す型。
+				integral（32bit符号付き整数）、long（64bit符号付き整数）、real（IEEE754倍精度浮動小数点数）のいずれか。
+			</documentation>
+		</annotation>
+		<restriction base="string">
+			<enumeration value="integer"></enumeration>
+			<enumeration value="real"></enumeration>
+			<whiteSpace value="collapse"></whiteSpace>
+			<enumeration value="ulong"></enumeration>
+		</restriction>
+	</simpleType>
+
+
+	<element name="lore">
+
+		<complexType>
+			<sequence minOccurs="1" maxOccurs="1">
+				<element minOccurs="1" maxOccurs="1"
+					ref="lore:header">
+					<annotation>
+						<documentation>文書の管理情報</documentation>
+					</annotation>
+				</element>
+				<element name="import" type="lore:Import"
+					maxOccurs="unbounded" minOccurs="0">
+				</element>
+				<element name="schedule" type="lore:Schedule"
+					maxOccurs="1" minOccurs="0">
+				</element>
+				<element ref="lore:section" maxOccurs="unbounded"
+					minOccurs="0">
+				</element>
+			</sequence>
+		</complexType>
+	</element>
+
+
+
+	<element name="area" type="lore:Area">
+	</element>
+
+	<element name="fun" type="lore:Function"></element>
+
+
+	<element name="actor" type="lore:Actor"></element>
+
+
+	<complexType name="Player">
+		<annotation>
+			<documentation></documentation>
+		</annotation>
+		<sequence>
+			<element name="description" type="lore:Description"
+				maxOccurs="1" minOccurs="0"></element>
+		</sequence>
+		<attribute name="jid" type="lore:JabberID" use="required"></attribute>
+		<attribute name="nick_name" type="Name"></attribute>
+		<attribute name="avatar" type="anyURI"></attribute>
+	</complexType>
+
+
+	<complexType name="Event">
+		<sequence>
+			<element name="args" type="lore:Form" maxOccurs="1"
+				minOccurs="0"></element>
+		</sequence>
+		<attribute name="ticks" type="unsignedLong" use="required">
+		</attribute>
+		<attribute name="timeUnit" type="lore:NumberWithUnit"></attribute>
+		<attribute name="priority" type="int"></attribute>
+		<attribute name="handler" type="lore:QIdentifier" use="required">
+		</attribute>
+		<attribute name="name" type="lore:Identifier"></attribute>
+	</complexType>
+
+	<complexType name="Function">
+		<annotation>
+			<documentation>手続き型。ルールやイベント処理を定義するために用いる。</documentation>
+		</annotation>
+		<complexContent>
+			<extension base="lore:SimpleValueSpec">
+
+				<sequence>
+					<element name="arg" type="lore:SimpleValueSpec" maxOccurs="unbounded"
+						minOccurs="0">
+					</element>
+					<element name="body" type="lore:CtrlBlock"></element>
+				</sequence>
+				<attribute name="base" type="lore:QIdentifier"></attribute>
+			</extension>
+		</complexContent>
+	</complexType>
+
+
+	<simpleType name="Identifier">
+		<annotation>
+			<documentation>変数名、フォームのフィールド名、手続き名、型名等を表す。先頭が数字でなく、空白や記号を含まず、任意個の文字または数字の並びである。
+			</documentation>
+		</annotation>
+		<restriction base="string">
+			<pattern value="[\w_]*"></pattern>
+		</restriction>
+	</simpleType>
+
+
+	<simpleType name="QIdentifier">
+		<annotation>
+			<documentation>修飾付きの変数名、フォームのフィールド名、手続き名、型名等を表す。Identifier型の値を.で区切って並べた物である。
+			</documentation>
+		</annotation>
+		<restriction base="string">
+			<pattern value="[\w_]*(\.[\w_]*)*"></pattern>
+		</restriction>
+	</simpleType>
+
+
+	<simpleType name="LocationLabel">
+		<annotation>
+			<documentation>修飾付きの変数名、フォームのフィールド名、手続き名、型名等を表す。Identifier型の値を.で区切って並べた物である。
+			</documentation>
+		</annotation>
+		<restriction base="lore:Identifier">
+			<pattern value="\w*"></pattern>
+		</restriction>
+	</simpleType>
+
+
+	<simpleType name="LocationPathString">
+		<restriction base="string">
+			<pattern value="/([\w_]+(/[\w_]+)*)?(\[[\w_\.,:]+\])?"></pattern>
+		</restriction>
+	</simpleType>
+
+	<complexType name="Actor">
+		<annotation>
+			<documentation>
+				キャラクターの型。コンピュータ関連ではCharacterは文字の型に用いられることが多いので区別のためActor型とした。
+			</documentation>
+		</annotation>
+		<complexContent>
+			<extension base="lore:Location">
+				<sequence>
+					<group ref="lore:SecretInfos" minOccurs="0" maxOccurs="unbounded"></group>
+					<element name="features" type="lore:Form"></element>
+					<element name="items" type="lore:ItemContents"></element>
+				</sequence>
+				<attribute name="player" type="lore:JabberID" use="optional">
+				</attribute>
+				<attribute name="surrogate" type="lore:JabberID"></attribute>
+				<attribute name="actorId" type="lore:ActorId" use="required">
+				</attribute>
+			</extension>
+		</complexContent>
+	</complexType>
+
+
+	<simpleType name="JabberID">
+		<annotation>
+			<documentation>XMPPで利用されるユーザ識別IDの型。リソース名を含むFullJIDを表す。
+			</documentation>
+		</annotation>
+		<restriction base="string">
+			<pattern
+				value="([\w_](\-?[\w_])*@)?([\w_](\-?[\w_])*(\.[\w_](\-?[\w_])*)*)(/[\w_](\-?[\w_])*)*">
+			</pattern>
+		</restriction>
+	</simpleType>
+
+
+	<complexType name="Enum">
+		<sequence>
+			<element name="element" type="lore:EnumElement" maxOccurs="unbounded"></element>
+		</sequence>
+		<attribute name="name" type="string"></attribute>
+	</complexType>
+
+
+	<complexType name="Empty">
+	</complexType>
+
+
+	<complexType name="EnumElement">
+		<complexContent>
+			<extension base="lore:Empty">
+				<attribute name="name" type="lore:Identifier"></attribute>
+			</extension>
+		</complexContent>
+	</complexType>
+
+
+	<complexType name="Form">
+		<sequence minOccurs="1" maxOccurs="1">
+			<element name="field" type="lore:Variable" maxOccurs="unbounded"
+				minOccurs="0">
+			</element>
+		</sequence>
+		<attribute name="type" type="lore:Identifier" use="optional"></attribute>
+	</complexType>
+
+
+	<complexType name="StructuredValue">
+		<sequence minOccurs="0" maxOccurs="1">
+			<element name="caption" type="string" minOccurs="0"
+				maxOccurs="1"></element>
+			<group ref="lore:AllExprs" minOccurs="0" maxOccurs="1"></group>
+		</sequence>
+		<attribute name="value" type="lore:Literal"></attribute>
+	</complexType>
+
+	<complexType name="List">
+		<complexContent>
+			<extension base="lore:ListSpec">
+				<sequence>
+					<element name="elem" type="lore:StructuredValue" maxOccurs="unbounded"
+						minOccurs="0"></element>
+				</sequence>
+				<attribute name="name" type="lore:Identifier"></attribute>
+			</extension>
+		</complexContent>
+	</complexType>
+
+
+
+	<complexType name="Variable">
+		<complexContent>
+			<extension base="lore:StructuredValue">
+				<attribute name="name" type="lore:Identifier"></attribute>
+				<attribute name="ref" type="lore:QIdentifier"></attribute>
+				<attribute name="type" type="lore:QTypeIdentifier"></attribute>
+			</extension>
+		</complexContent>
+	</complexType>
+
+	<simpleType name="Literal">
+		<union
+			memberTypes="lore:BaseNumberTypes lore:DiceExpression lore:Number lore:NumberWithUnit lore:Range lore:RangeWithUnit lore:JabberID lore:ActorId lore:ItemId lore:MsgAddress" />
+	</simpleType>
+
+	<element name="item" type="lore:Item"></element>
+
+
+	<complexType name="Item">
+		<complexContent>
+			<extension base="lore:Location">
+				<sequence minOccurs="1">
+					<group ref="lore:SecretInfos" minOccurs="0" maxOccurs="unbounded" />
+					<element name="features" type="lore:Form"></element>
+					<element name="items" type="lore:ItemContents" maxOccurs="1"
+						minOccurs="0">
+					</element>
+    			</sequence>
+				<attribute name="owner" type="lore:ActorId"></attribute>
+				<attribute name="itemId" type="lore:ItemId" use="required"></attribute>
+			</extension>
+		</complexContent>
+	</complexType>
+
+
+	<simpleType name="ActorId">
+		<restriction base="lore:Identifier"></restriction>
+	</simpleType>
+
+
+	<simpleType name="ItemId">
+		<restriction base="lore:Identifier"></restriction>
+	</simpleType>
+
+	<complexType name="Location">
+		<sequence>
+			<element name="description" type="lore:Description"
+				minOccurs="0">
+				<annotation>
+					<documentation>この要素の説明。</documentation>
+				</annotation>
+			</element>
+			<element name="note" type="lore:Document" maxOccurs="unbounded"
+				minOccurs="0">
+				<annotation>
+					<documentation>プレイヤーが自由に付加できるメモ。</documentation>
+				</annotation>
+			</element>
+		</sequence>
+		<attribute name="location" type="lore:LocationPathString"></attribute>
+	</complexType>
+
+
+
+	<complexType name="Area">
+		<complexContent>
+			<extension base="lore:Location">
+				<sequence>
+					<element name="environment" type="lore:Form" minOccurs="0">
+					</element>
+					<any namespace="##other" processContents="lax">
+						<annotation>
+							<documentation>
+								拡張可能なgeometry要素を指定する。geometry要素はマップ・タイプ毎に別のXML
+								Shemaで指定される。
+							</documentation>
+						</annotation>
+					</any>
+				</sequence>
+				<attribute name="name" type="lore:Identifier"></attribute>
+				<attribute name="scale" type="lore:NumberWithUnit"></attribute>
+				<attribute name="geometry" type="anyURI"></attribute>
+				<attribute name="direction" type="lore:AreaDirection"></attribute>
+			</extension>
+		</complexContent>
+	</complexType>
+
+
+
+
+
+	<element name="format" type="lore:Format"></element>
+
+
+	<complexType name="Format">
+		<choice maxOccurs="unbounded" minOccurs="0">
+			<element name="member" type="lore:FormatMember"></element>
+		</choice>
+		<attribute name="name" type="lore:Identifier"></attribute>
+		<attribute name="base" type="lore:QIdentifier"></attribute>
+	</complexType>
+
+
+	<complexType name="NoNameValueSpec">
+		<choice maxOccurs="unbounded" minOccurs="0">
+			<element name="list" type="lore:ListSpec"></element>
+			<element name="map" type="lore:MapSpec"></element>
+		</choice>
+		<attribute name="type" type="lore:QTypeIdentifier"></attribute>
+	</complexType>
+
+
+	<complexType name="SimpleValueSpec">
+		<complexContent>
+			<extension base="lore:NoNameValueSpec">
+				<attribute name="name" type="lore:Identifier" use="required"></attribute>
+			</extension>
+		</complexContent>
+	</complexType>
+
+
+	<complexType name="StructuredValueSpec">
+		<complexContent>
+			<extension base="lore:SimpleValueSpec">
+				<choice maxOccurs="unbounded" minOccurs="0">
+					<element name="format" type="lore:Format"></element>
+				</choice>
+			</extension>
+		</complexContent>
+	</complexType>
+
+
+	<complexType name="FormatMember">
+		<complexContent>
+			<extension base="lore:StructuredValueSpec">
+				<choice maxOccurs="unbounded" minOccurs="0">
+					<element name="calc" type="lore:CtrlBlock"></element>
+					<element name="update" type="lore:CtrlBlock"></element>
+				</choice>
+			</extension>
+		</complexContent>
+	</complexType>
+
+
+	<complexType name="ListSpec">
+		<sequence>
+			<element name="type" type="lore:NoNameValueSpec" minOccurs="0"></element>
+		</sequence>
+		<attribute name="type" type="lore:QTypeIdentifier" use="optional">
+		</attribute>
+	</complexType>
+
+
+	<complexType name="ItemContents">
+		<sequence>
+			<element name="item" type="lore:Item" minOccurs="0"
+				maxOccurs="unbounded"></element>
+		</sequence>
+	</complexType>
+
+
+	<complexType name="CtrlBlock" mixed="true">
+		<choice maxOccurs="unbounded" minOccurs="0">
+			<element ref="lore:variable"></element>
+			<element ref="lore:list"></element>
+			<element ref="lore:map"></element>
+			<element ref="lore:form"></element>
+			<element name="ref" type="lore:ReferenceExpr"></element>
+			<element name="call" type="lore:ReferenceExpr"></element>
+			<element name="set" type="lore:SetStatement"></element>
+			<element name="message" type="lore:MsgStatement"></element>
+			<element name="ret" type="lore:RetStatement"></element>
+			<element name="cases" type="lore:Cases"></element>
+			<element name="for" type="lore:For"></element>
+		</choice>
+	</complexType>
+
+
+
+
+	<complexType name="MapSpec">
+		<sequence>
+			<element name="domain" type="lore:NoNameValueSpec"></element>
+			<element name="region" type="lore:NoNameValueSpec"></element>
+		</sequence>
+		<attribute name="domain" type="lore:QTypeIdentifier"></attribute>
+		<attribute name="region" type="lore:QTypeIdentifier"></attribute>
+	</complexType>
+
+
+	<complexType name="Map">
+		<complexContent>
+			<extension base="lore:MapSpec">
+				<sequence>
+					<element name="entry" type="lore:MapEntry" minOccurs="0"
+						maxOccurs="unbounded">
+					</element>
+				</sequence>
+			</extension>
+		</complexContent>
+	</complexType>
+
+
+	<complexType name="MapEntry">
+		<sequence>
+			<element name="key" type="lore:StructuredValue"></element>
+			<element name="value" type="lore:StructuredValue"></element>
+		</sequence>
+	</complexType>
+
+
+	<element name="trigger" type="lore:Trigger"></element>
+
+
+
+	<complexType name="Trigger">
+		<complexContent>
+			<extension base="lore:Location">
+				<sequence>
+					<element name="action" minOccurs="0" maxOccurs="unbounded">
+						<complexType>
+							<choice>
+								<group ref="lore:AllExprs" />
+							</choice>
+						</complexType>
+					</element>
+					<element name="args" type="lore:Form" maxOccurs="1"
+						minOccurs="0">
+					</element>
+				</sequence>
+				<attribute name="name" type="lore:Identifier"></attribute>
+				<attribute name="handler" type="lore:QIdentifier" use="required">
+				</attribute>
+				<attribute name="range" type="lore:NumberWithUnit"></attribute>
+				<attribute name="action" type="string"></attribute>
+			</extension>
+		</complexContent>
+	</complexType>
+
+	<complexType name="Schedule">
+		<sequence>
+			<choice maxOccurs="unbounded" minOccurs="0">
+				<element ref="lore:event" maxOccurs="1" minOccurs="1">
+				</element>
+				<element name="event_ref">
+					<complexType>
+						<complexContent>
+							<extension base="lore:Empty">
+								<attribute name="ref" type="lore:QIdentifier">
+								</attribute>
+							</extension>
+						</complexContent>
+					</complexType>
+				</element>
+			</choice>
+		</sequence>
+		<attribute name="current" type="unsignedLong"></attribute>
+		<attribute name="time_unit" type="lore:UnitString"></attribute>
+		<attribute name="priority" type="int"></attribute>
+	</complexType>
+
+
+	<complexType name="Section" mixed="true">
+		<sequence maxOccurs="1" minOccurs="1">
+			<element ref="lore:system" maxOccurs="1" minOccurs="0"></element>
+			<choice maxOccurs="unbounded" minOccurs="0">
+				<element ref="lore:trigger"></element>
+				<element ref="lore:event"></element>
+				<element ref="lore:format"></element>
+				<element ref="lore:form"></element>
+				<element ref="lore:list"></element>
+				<element ref="lore:map"></element>
+				<element ref="lore:fun"></element>
+				<element ref="lore:actor"></element>
+				<element ref="lore:item"></element>
+				<element ref="lore:area"></element>
+				<element ref="lore:unit"></element>
+				<element ref="lore:enum"></element>
+				<element ref="lore:variable"></element>
+				<element ref="lore:section"></element>
+			</choice>
+
+		</sequence>
+		<attribute name="name" type="lore:Identifier" use="required"></attribute>
+
+	</complexType>
+
+
+	<complexType name="HTML">
+		<sequence maxOccurs="1" minOccurs="1">
+			<element ref="xhtml:body" minOccurs="1" maxOccurs="1" />
+		</sequence>
+	</complexType>
+
+	<complexType name="System">
+		<complexContent>
+			<extension base="lore:Empty">
+
+				<sequence>
+
+					<element name="actor_format" type="lore:Format" minOccurs="0">
+					</element>
+
+					<element name="item_format" type="lore:Format" minOccurs="0">
+					</element>
+
+					<element name="environment_format" type="lore:Format"
+						maxOccurs="1" minOccurs="0">
+					</element>
+				</sequence>
+
+				<attribute name="name" type="lore:QIdentifier" use="required">
+				</attribute>
+
+				<attribute name="base" type="lore:QIdentifier"></attribute>
+
+				<attribute name="actor_format" type="lore:QIdentifier">
+				</attribute>
+
+				<attribute name="item_format" type="lore:QIdentifier"></attribute>
+
+				<attribute name="environment_format" type="lore:QIdentifier">
+				</attribute>
+				<attribute name="trigger_action_type" type="lore:QIdentifier"></attribute>
+			</extension>
+		</complexContent>
+	</complexType>
+
+
+	<element name="section" type="lore:Section"></element>
+
+
+	<element name="system" type="lore:System"></element>
+
+
+	<element name="schedule" type="lore:Schedule"></element>
+
+	<complexType name="Document">
+		<sequence>
+			<group ref="lore:SecretInfos" maxOccurs="unbounded" minOccurs="0" />
+			<choice maxOccurs="1" minOccurs="1">
+				<element name="plain" type="string"></element>
+				<element name="html" type="lore:HTML"></element>
+			</choice>
+    	</sequence>
+	</complexType>
+
+
+	<complexType name="Description">
+		<complexContent>
+			<extension base="lore:Document"></extension>
+		</complexContent>
+	</complexType>
+
+	<element name="event" type="lore:Event"></element>
+
+	<element name="variable" type="lore:Variable"></element>
+
+	<simpleType name="GameTime">
+		<restriction base="string"></restriction>
+	</simpleType>
+
+	<complexType name="SetStatement">
+		<complexContent>
+			<extension base="lore:StructuredValue">
+				<attribute name="to" type="lore:QIdentifier"></attribute>
+			</extension>
+		</complexContent>
+	</complexType>
+
+	<complexType name="MsgStatement">
+		<complexContent>
+			<extension base="lore:CommExpr">
+				<choice maxOccurs="1" minOccurs="0">
+					<element name="plain" type="string" maxOccurs="1"
+						minOccurs="1"></element>
+					<element name="html" type="lore:HTML" maxOccurs="1"
+						minOccurs="1"></element>
+				</choice>
+			</extension>
+		</complexContent>
+	</complexType>
+
+	<simpleType name="PlayerAddress">
+		<union>
+			<simpleType>
+				<restriction base="lore:JabberID">
+					<enumeration value="GM"></enumeration>
+					<enumeration value="ALL"></enumeration>
+				</restriction>
+			</simpleType>
+		</union>
+	</simpleType>
+
+	<simpleType name="MsgAddress">
+		<union memberTypes="lore:PlayerAddress lore:ActorId"></union>
+	</simpleType>
+
+	<complexType name="CommExpr">
+		<sequence>
+			<element name="to" maxOccurs="1" minOccurs="0">
+				<complexType>
+					<sequence>
+						<group ref="lore:UniversalExprs"></group>
+					</sequence>
+				</complexType>
+			</element>
+			<element name="message" type="lore:Document" maxOccurs="unbounded"
+				minOccurs="0"></element>
+		</sequence>
+		<attribute name="to" type="lore:MsgAddress" use="optional"></attribute>
+		<attribute name="check_by_gm" type="boolean"></attribute>
+	</complexType>
+
+	<complexType name="SelectExpr">
+		<complexContent>
+			<extension base="lore:CommExpr">
+				<sequence>
+					<element name="options">
+						<complexType>
+							<choice maxOccurs="1" minOccurs="0">
+								<element name="list" type="lore:List">
+								</element>
+								<group ref="lore:UniversalExprs">
+								</group>
+							</choice>
+							<attribute name="ref" type="lore:QIdentifier">
+							</attribute>
+						</complexType>
+					</element>
+				</sequence>
+			</extension>
+		</complexContent>
+	</complexType>
+
+	<complexType name="RollExpr">
+		<complexContent>
+			<extension base="lore:CommExpr">
+				<sequence>
+					<group ref="lore:ArithmeticExprs" />
+				</sequence>
+				<attribute name="ref" type="lore:QIdentifier"></attribute>
+				<attribute name="dice" type="lore:DiceExpression"></attribute>
+			</extension>
+		</complexContent>
+	</complexType>
+
+	<simpleType name="RoundMode">
+		<restriction base="string">
+			<enumeration value="nearest"></enumeration>
+			<enumeration value="ceil"></enumeration>
+			<enumeration value="floor"></enumeration>
+		</restriction>
+	</simpleType>
+
+	<complexType name="ReferenceExpr">
+		<sequence>
+    		<choice>
+    			<element name="arg" type="lore:Variable" minOccurs="0"
+    				maxOccurs="unbounded">
+    			</element>
+    			<element name="get" type="lore:ReferenceGetExpr"></element>
+    		</choice>
+    	</sequence>
+    	<attribute name="from" type="lore:QIdentifier"></attribute>
+    	<attribute name="get" type="lore:Literal"></attribute>
+    	<attribute name="fun" type="lore:QIdentifier"></attribute>
+    </complexType>
+
+    <complexType name="Cases">
+    	<sequence>
+    		<element name="case" type="lore:Case" maxOccurs="unbounded"
+    			minOccurs="1">
+    		</element>
+    		<element name="default" type="lore:DefaultCase"
+    			maxOccurs="1" minOccurs="0">
+    		</element>
+    	</sequence>
+    </complexType>
+    
+    <complexType name="CasesExpr">
+    	<complexContent>
+    		<extension base="lore:Cases"></extension>
+    	</complexContent>
+    </complexType>
+
+    <complexType name="Case">
+    	<sequence>
+    		<element name="cond" maxOccurs="1" minOccurs="0">
+    			<complexType>
+    				<sequence>
+    					<group ref="lore:ConditionalExprs"></group>
+    				</sequence>
+    			</complexType>
+    		</element>
+    		<element name="block" type="lore:CtrlBlock" maxOccurs="1" minOccurs="1"></element>
+    	</sequence>
+    </complexType>
+
+    <complexType name="DefaultCase">
+    	<sequence>
+    		<element name="block" type="lore:CtrlBlock" maxOccurs="1" minOccurs="1"></element>
+    	</sequence>
+    </complexType>
+
+    <complexType name="InstanceOfEpr">
+    	<sequence>
+    		<element name="expr" maxOccurs="1"
+    			minOccurs="0">
+    			<complexType>
+    				<sequence>
+    					<group ref="lore:AllExprs"></group>
+    				</sequence>
+    			</complexType>
+    		</element>
+    	</sequence>
+    	<attribute name="type" type="lore:QTypeIdentifier"></attribute>
+        <attribute name="ref" type="lore:QIdentifier"></attribute>
+    </complexType>
+
+    <complexType name="UnitConstruct">
+    	<sequence minOccurs="0" maxOccurs="1">
+    		<choice>
+	     		<group ref="lore:UniversalExprs"></group>
+	    		<group ref="lore:ArithmeticExprs"></group>   		
+    		</choice>
+    	</sequence>
+		<attribute name="dim" type="lore:UnitString" use="required"></attribute>
+		<attribute name="ref" type="lore:QIdentifier"></attribute>
+    </complexType>
+
+    <complexType name="RangeConstruct">
+    	<sequence minOccurs="0" maxOccurs="1">
+    		<choice>
+	     		<group ref="lore:UniversalExprs"></group>
+	    		<group ref="lore:ArithmeticExprs"></group>   		
+    		</choice>
+    	</sequence>
+		<attribute name="top" type="lore:QIdentifier"></attribute>
+		<attribute name="bottom" type="lore:QIdentifier"></attribute>
+		<attribute name="bottom_mode" type="lore:EqualityMode" use="required"></attribute>
+		<attribute name="top_mode" type="lore:EqualityMode" use="required"></attribute>
+    </complexType>
+
+    <simpleType name="EqualityMode">
+    	<restriction base="string">
+    		<enumeration value="eq"></enumeration>
+    		<enumeration value="neq"></enumeration>
+    	</restriction>
+    </simpleType>
+
+    <complexType name="LiteralExpr">
+    	<complexContent>
+    		<extension base="lore:Empty">
+    			<attribute name="value" type="lore:Literal"></attribute>
+    			<attribute name="type" type="lore:QTypeIdentifier" use="required"></attribute>
+    		</extension>
+    	</complexContent>
+    </complexType>
+
+    <complexType name="FillFormExpr">
+    	<complexContent>
+    		<extension base="lore:CommExpr">
+    			<sequence maxOccurs="1" minOccurs="0">
+    				<choice>
+    					<group ref="lore:UniversalExprs"></group>
+    					<element ref="lore:format"></element>
+    					<element ref="lore:form"></element>
+    				</choice>
+    			</sequence>
+    			<attribute name="ref" type="lore:QIdentifier"></attribute>
+    			<attribute name="type" type="lore:QIdentifier"></attribute>
+    		</extension>
+    	</complexContent>
+    </complexType>
+
+    <element name="form" type="lore:Form"></element>
+
+    <element name="list" type="lore:List"></element>
+
+    <element name="map" type="lore:Map"></element>
+
+	<complexType name="ConditionalTerms">
+		<sequence>
+			<choice minOccurs="2" maxOccurs="unbounded">
+				<group ref="lore:UniversalExprs"/>
+				<group ref="lore:ConditionalExprs"/>
+			</choice>
+		</sequence>
+	</complexType>
+	
+	<complexType name="ConditionalTerm1">
+		<sequence>
+			<choice minOccurs="1" maxOccurs="1">
+				<group ref="lore:UniversalExprs"/>
+				<group ref="lore:ConditionalExprs"/>
+			</choice>
+		</sequence>
+	</complexType>
+		
+	<complexType name="TermPair">
+		<sequence>
+				<group ref="lore:AllExprs" minOccurs="2" maxOccurs="2"/>
+		</sequence>
+	</complexType>
+
+    <group name="ConditionalExprs">
+		<choice>
+			<element name="and"  type="lore:ConditionalTerms" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="or" type="lore:ConditionalTerms" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="not" type="lore:ConditionalTerm1" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="eq" type="lore:TermPair" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="neq" type="lore:TermPair" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="geq" type="lore:TermPair" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="gt" type="lore:TermPair" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="leq" type="lore:TermPair" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="lt" type="lore:TermPair" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="instance" type="lore:InstanceOfEpr"
+				maxOccurs="1" minOccurs="1">
+			</element>
+		</choice>
+	</group>
+	
+	<group name="UniversalExprs">
+		<choice>
+			<element name="select" type="lore:SelectExpr" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="call" type="lore:ReferenceExpr" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="ref" type="lore:ReferenceExpr" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="cases" type="lore:CasesExpr" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="literal" type="lore:LiteralExpr"
+				maxOccurs="1" minOccurs="1">
+			</element>
+		</choice>
+	</group>
+	
+	<group name="SpecialExprs">
+		<choice>
+			<element name="fill" type="lore:FillFormExpr" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="form" type="lore:Form" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="list" type="time" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="map" type="lore:Map" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="html" type="lore:HTML" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="text" type="string" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="function" type="lore:FunctionPointer"
+				maxOccurs="1" minOccurs="1">
+			</element>
+			<element name="location"
+				type="lore:LocationPointerConstruct" maxOccurs="1" minOccurs="1">
+			</element>
+		</choice>
+	</group>
+	
+	<complexType name="ArithmeticTerms">
+		<sequence>
+			<choice minOccurs="2" maxOccurs="unbounded">
+				<group ref="lore:UniversalExprs"/>
+				<group ref="lore:ArithmeticExprs"/>
+			</choice>
+		</sequence>
+	</complexType>
+	
+	<complexType name="ArithmeticTerm2">
+		<sequence>
+			<choice minOccurs="2" maxOccurs="2">
+				<group ref="lore:UniversalExprs"/>
+				<group ref="lore:ArithmeticExprs"/>
+			</choice>
+		</sequence>
+	</complexType>
+	
+	<complexType name="ArithmeticTerm1">
+		<sequence>
+			<choice>
+				<group ref="lore:UniversalExprs" minOccurs="1" maxOccurs="1"/>
+				<group ref="lore:ArithmeticExprs" minOccurs="1" maxOccurs="1"/>
+			</choice>
+		</sequence>
+	</complexType>
+
+    <group name="ArithmeticExprs">
+		<choice>
+			<element name="roll" type="lore:RollExpr" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="add" type="lore:ArithmeticTerms" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="mul" type="lore:ArithmeticTerm2" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="sub" type="lore:ArithmeticTerm2" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="div" maxOccurs="1"
+				minOccurs="1">
+				<complexType>
+					<complexContent>
+						<extension base="lore:ArithmeticTerm2">
+							<attribute name="mode" type="lore:RoundMode"></attribute>
+						</extension>
+					</complexContent>
+				</complexType>
+			</element>
+			<element name="mod" type="lore:ArithmeticTerm2" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="unit" type="lore:UnitConstruct" maxOccurs="1"
+				minOccurs="1">
+			</element>
+			<element name="range" type="lore:RangeConstruct"
+				maxOccurs="1" minOccurs="1">
+			</element>
+		</choice>
+	</group>
+	
+	<group name="AllExprs">
+		<choice>
+			<group ref="lore:UniversalExprs"></group>
+			<group ref="lore:ConditionalExprs"></group>
+			<group ref="lore:ArithmeticExprs"></group>
+			<group ref="lore:SpecialExprs"></group>
+		</choice>
+	</group>
+
+	<complexType name="RetStatement">
+		<complexContent>
+			<extension base="lore:StructuredValue">
+				<attribute name="ref" type="lore:QIdentifier"></attribute>
+			</extension>
+		</complexContent>
+	</complexType>
+
+	<simpleType name="QTypeIdentifier">
+		<restriction base="string">
+			<pattern value="[\w_]*(\.[\w_]*)*(\[[\w_^/]+\])?"></pattern>
+		</restriction>
+	</simpleType>
+
+	<simpleType name="AreaDirection">
+		<restriction base="int">
+			<minInclusive value="-360"></minInclusive>
+			<maxInclusive value="360"></maxInclusive>
+		</restriction>
+	</simpleType>
+
+	<complexType name="Import">
+		<complexContent>
+			<extension base="lore:Empty">
+				<attribute name="location" type="anyURI" use="required"></attribute>
+			</extension>
+		</complexContent>
+	</complexType>
+
+	<complexType name="For">
+		<complexContent>
+			<extension base="lore:CtrlBlock">
+				<attribute name="var" type="lore:Identifier"></attribute>
+				<attribute name="list" type="lore:QIdentifier"></attribute>
+			</extension>
+		</complexContent>
+	</complexType>
+
+	<complexType name="ReferenceGetExpr">
+		<sequence>
+			<group ref="lore:AllExprs"></group>
+		</sequence>
+	</complexType>
+
+	<complexType name="FunctionPointer">
+		<complexContent>
+			<extension base="lore:Empty">
+				<attribute name="ref" type="lore:QIdentifier"></attribute>
+			</extension>
+		</complexContent>
+	</complexType>
+
+	<complexType name="LocationPointerConstruct">
+		<complexContent>
+			<extension base="lore:Empty">
+				<attribute name="path" type="lore:LocationPathString"></attribute>
+			</extension>
+		</complexContent>
+	</complexType>
+
+
+	<element name="secret" type="lore:Secret"></element>
+
+	<complexType name="Secret">
+        <annotation>
+        	<documentation>この要素の所有者がなんらかの秘密を持っていることを示す。
+modeがhideならばこの秘密の所有者は隠されている。
+modeがtrue_selfならこの秘密の所有者は別の正体を持ち、正体はref属性で示される。
+正体は所有者と同じ型でなければならない。
+秘密を見破ることができるキャラはkey属性に示される文字列を値に持つsecretKey要素を所有していなければならない。
+（キャラクタの場合、自分の正体を知らないキャラというのもあり得る。）</documentation>
+        </annotation>
+        <attribute name="mode" type="lore:SecretMode">
+        	<annotation>
+        		<documentation>秘密の態様を示す。</documentation>
+        	</annotation></attribute>
+		<attribute name="key" type="string"></attribute>
+		<attribute name="ref" type="lore:QIdentifier"></attribute>
+	</complexType>
+
+	<simpleType name="SecretMode">
+        <annotation>
+        	<documentation>秘密の態様を示す。</documentation>
+        </annotation>
+        <restriction base="string">
+			<enumeration value="hide"></enumeration>
+			<enumeration value="true_self"></enumeration>
+		</restriction>
+	</simpleType>
+
+	<element name="secretKey" type="lore:SecretKey"></element>
+
+	<complexType name="SecretKey">
+        <annotation>
+        	<documentation>シナリオ上の秘密情報の鍵。子要素は鍵の説明テキスト。</documentation>
+        </annotation>
+        <simpleContent>
+			<extension base="string">
+				<attribute name="key" type="string"></attribute>
+			</extension>
+		</simpleContent>
+	</complexType>
+
+	<group name="SecretInfos">
+		<choice>
+			<element ref="lore:secret"></element>
+			<element ref="lore:secretKey"></element>
+		</choice>
+	</group>
+	<element name="header" type="lore:Header">
+		<annotation></annotation>
+	</element>
+	<complexType name="Header">
+		<annotation></annotation>
+		<sequence minOccurs="1" maxOccurs="1">
+			<element minOccurs="1" maxOccurs="1" name="title"
+				type="string">
+			</element>
+			<element minOccurs="1" maxOccurs="unbounded"
+				name="author">
+				<annotation></annotation>
+				<complexType>
+					<simpleContent>
+						<extension base="string">
+							<attribute use="optional" name="jid"
+								type="lore:JabberID">
+							</attribute>
+						</extension>
+					</simpleContent>
+				</complexType>
+			</element>
+			<element minOccurs="0" maxOccurs="unbounded"
+				name="history">
+				<annotation></annotation>
+				<complexType>
+					<annotation></annotation>
+					<simpleContent>
+						<extension base="string">
+							<attribute use="required" name="date"
+								type="dateTime">
+								<annotation></annotation>
+							</attribute>
+							<attribute use="required" name="modifier"
+								type="lore:JabberID">
+								<annotation></annotation>
+							</attribute>
+						</extension>
+					</simpleContent>
+				</complexType>
+			</element>
+			<element minOccurs="0" maxOccurs="unbounded" name="master"
+				type="lore:Player">
+				<annotation></annotation>
+			</element>
+			<element minOccurs="0" maxOccurs="unbounded" name="player"
+				type="lore:Player">
+			</element>
+		</sequence>
+		<attribute name="version" type="string"></attribute>
+	</complexType>
+</schema>

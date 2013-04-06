@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<lore xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.xgmtk.org/Lore Lore.xsd" xmlns="http://www.xgmtk.org/Lore">
+	<header>
+		<title>Hello World</title>
+		<author>Chihiro Shiiji</author>
+		<!-- システムが作成し保存 -->
+		<history modifier="Chihiro@xmpp.xgmtk.org" date="2012-08-07T02:07:30.00+09:00">Saved.</history>
+		<!-- システムが作成し保存 -->
+		<master jid="Chihiro@xmpp.xgmtk.org"></master>
+	</header>
+	<!-- システムが作成し保存 -->
+	<schedule current="1" priority="0">
+		<event_ref ref="main.first" />
+	</schedule>
+	<section name="main">
+		開始直後（時刻0）にinitという名前のハンドラを呼び出すためのイベントです。
+		実行可能なシナリオには最低一つのイベントが必要です。
+		<event name="first" ticks="0" handler="init" />
+		上記のイベントから呼び出されるハンドラです。
+		GMのチャット・ウィンドウに"Hello world!"が表示されます。
+		<fun name="init">
+			<body>
+				GMに向けてメッセージを送信します。
+				<message to="GM">
+					<plain>Hello world!</plain>
+				</message>
+			</body>
+		</fun>
+		このようにsectionや基本ブロック（関数のボディ部、casesのボディ部、forのボディ部）に
+		GMがシナリオ理解しやすくするための説明を自由に書くことができます。
+		シナリオを閲覧やメンテナンスする人のためのテキストであり、
+		動作には影響せずプレイ中に表示もされません。
+	</section>
+</lore>

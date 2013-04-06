@@ -1,0 +1,237 @@
+<?xml version="1.0"?>
+<lore xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.xgmtk.org/Lore Lore.xsd" xmlns="http://www.xgmtk.org/Lore">
+	<header>
+		<title>フォームの機能解説用サンプル</title>
+		<author>Chihiro Shiiji</author>
+	</header>
+
+	<section name="ability_format">
+		単純に整数型で表現した能力値をメンバーとして、キャラクタの特徴を表現するフォーマット。
+		<format name="simple_ability">
+			<member name="STR" type="int" />
+			<member name="CON" type="int" />
+			<member name="SIZ" type="int" />
+			<member name="INT" type="int" />
+			<member name="POW" type="int" />
+			<member name="DEX" type="int" />
+			<member name="APP" type="int" />
+		</format>
+		上記のフォーマットに具体的な値を設定したフォーム。
+		<form type="simple_ability">
+			<field name="STR" value="11" />
+			<field name="CON" value="13" />
+			<field name="SIZ" value="12" />
+			<field name="INT" value="9" />
+			<field name="value" value="18" />
+			<field name="DEX" value="14" />
+			<field name="APP" value="6" />
+		</form>
+		RuneQuestの技能分野ルールを表現するためにcalcなメンバーを追加して拡張した
+		<format name="ability" base="simple_ability">
+			<!-- 運動技能分野修正値 -->
+			<member name="agilityBounus">
+				<calc>
+					<ret>
+						<add>
+							<call fun="secondary">
+								<arg ref="STR" />
+							</call>
+							<call fun="negative">
+								<arg ref="SIZ" />
+							</call>
+							<call fun="positive">
+								<arg ref="DEX" />
+							</call>
+						</add>
+					</ret>
+				</calc>
+			</member>
+			
+			<!-- 交渉技能分野修正値 -->
+			<member name="communicationBounus">
+				<calc>
+					<ret>
+						<add>
+							<call fun="positive">
+								<arg ref="INT" />
+							</call>
+							<call fun="secondary">
+								<arg ref="POW" />
+							</call>
+							<call fun="secondary">
+								<arg ref="APP" />
+							</call>
+						</add>
+					</ret>
+				</calc>
+			</member>
+			
+			<!-- 知識技能分野修正値 -->
+			<member name="knowledgeBounus">
+				<calc>
+					<ret>
+						<call fun="positive">
+							<arg ref="INT" />
+						</call>
+					</ret>
+				</calc>
+			</member>
+			
+			<!-- 操作技能分野修正値 -->
+			<member name="manipulationBounus">
+				<calc>
+					<ret>
+						<add>
+							<call fun="secondary">
+								<arg ref="STR" />
+							</call>
+							<call fun="positive">
+								<arg ref="INT" />
+							</call>
+							<call fun="positive">
+								<arg ref="DEX" />
+							</call>
+						</add>
+					</ret>
+				</calc>
+			</member>
+			
+			<!-- 知覚技能分野修正値 -->
+			<member name="perceptionBounus">
+				<calc>
+					<ret>
+						<add>
+							<call fun="secondary">
+								<arg ref="CON" />
+							</call>
+							<call fun="positive">
+								<arg ref="INT" />
+							</call>
+							<call fun="secondary">
+								<arg ref="POW" />
+							</call>
+						</add>
+					</ret>
+				</calc>
+			</member>
+			
+			<!-- 隠密技能分野修正値 -->
+			<member name="stealthBounus">
+				<calc>
+					<ret>
+						<add>
+							<call fun="negative">
+								<arg ref="SIZ" />
+							</call>
+							<call fun="negative">
+								<arg ref="POW" />
+							</call>
+							<call fun="positive">
+								<arg ref="DEX" />
+							</call>
+						</add>
+					</ret>
+				</calc>
+			</member>
+			
+			<!-- 魔法技能分野修正値 -->
+			<member name="magicBounus">
+				<calc>
+					<ret>
+						<add>
+							<call fun="positive">
+								<arg ref="INT" />
+							</call>
+							<call fun="positive">
+								<arg ref="POW" />
+							</call>
+							<call fun="secondary">
+								<arg ref="DEX" />
+							</call>
+						</add>
+					</ret>
+				</calc>
+			</member>
+		</format>
+
+		上記のフォーマットに具体的な値を設定したフォーム。
+		<form type="ability">
+			<field name="STR" value="11" />
+			<field name="CON" value="13" />
+			<field name="SIZ" value="12" />
+			<field name="INT" value="9" />
+			<field name="value" value="18" />
+			<field name="DEX" value="14" />
+			<field name="APP" value="6" />
+		</form>
+
+		<fun name="positive">
+			<arg name="ability" />
+			<body>
+				<ret>
+					<sub><ref from="ability" /><literal type="int" value="10" /></sub>
+				</ret>
+			</body>
+		</fun>
+
+		<fun name="negative">
+			<arg name="ability" />
+			<body>
+				<ret>
+					<sub><literal type="int" value="10" /><ref from="ability" /></sub>
+				</ret>
+			</body>
+		</fun>
+
+		<fun name="secondary">
+			<arg name="ability" />
+			<body>
+				<variable name="row">
+					<div mode="ceil">
+						<sub><ref from="DEX" /><literal type="int" value="10" /></sub>
+						<literal type="int" value="2" />
+					</div>
+				</variable>
+				<ret>
+					<cases>
+						<case>
+							<cond>
+								<gt><ref from="row" /><literal type="int" value="10" /></gt>
+							</cond>
+							<block>
+								<ret value="10" />
+							</block>
+						</case>
+						<default>
+							<block>
+								<ret ref="row" />
+							</block>
+						</default>
+					</cases>
+				</ret>
+			</body>
+		</fun>
+	</section>
+	
+	<section name="basics">
+		ゲームシステムで利用するキャラクタのfeatures要素の型を決める宣言を含むSystem要素。
+		<system name="samples" actor_format="ability_format.ability" />
+		
+		上記の設定に合わせて作ったActor型の値。
+		<actor actorId="Sample">
+			<features>
+				<field name="STR" value="11" />
+				<field name="CON" value="13" />
+				<field name="SIZ" value="12" />
+				<field name="INT" value="9" />
+				<field name="value" value="18" />
+				<field name="DEX" value="14" />
+				<field name="APP" value="6" />			
+			</features>
+			<items/>
+		</actor>
+	</section>
+	
+	
+</lore>

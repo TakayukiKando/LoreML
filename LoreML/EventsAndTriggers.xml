@@ -1,0 +1,523 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lore xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.xgmtk.org/Lore Lore.xsd" xmlns="http://www.xgmtk.org/Lore"
+	xmlns:xhtml="http://www.w3.org/1999/xhtml">
+	<header>
+		<title>エリア、イベント、トリガの解説用サンプル</title>
+		<author>Chihiro Shiiji</author>
+	</header>
+
+	<!-- 基本定義のインポート -->
+	<import location="Basics.xml" />
+
+	<section name="scenario">
+		シナリオの見本。
+
+		おなじみの初期化イベント。
+		<event handler="rule.init" ticks="0" />
+
+		基点となるエリアに「とある地方」を設定。
+		この「とある地方」にはたった２つしか地点がない。
+		<area name="region" location="/[0]" geometry="http://www.xgmtk.org/Lore/Point"
+			scale="1(km)">
+			<description>
+				<plain>とある地域</plain>
+			</description>
+			<geometry xmlns="http://www.xgmtk.org/Lore/Linked">
+				<description>
+					<plain>Linked型ジオメトリのエリア</plain>
+				</description>
+				<node label="start_point">
+					<description>
+						<plain>スタート地点</plain>
+					</description>
+					<link to="dungeon" distance="4(km)"></link>
+				</node>
+				<node label="dungeon">
+					<description>
+						<plain>ミニマムダンジョン所在地</plain>
+					</description>
+					<link to="start_point" distance="4(km)"></link>
+				</node>
+			</geometry>
+		</area>
+
+		「とある地方」のとある場所（dungeon）に５×５の升目に区切られたダンジョンを設置。
+		地下5メートルにあるダンジョンには入口（座標[4,2]）と祭壇（座標[1,2]）がある。
+		祭壇の升目だけは30cmほど周囲より高い。
+		スケールは5mとするので升目の1辺が5mとなります。
+		directionに30を指定したので時計回りに30度回転されています。
+		<area name="dungeon" location="/region[dungeon]"
+			geometry="http://www.xgmtk.org/Lore/Sectioned2D" direction="30"
+			scale="5(m)">
+			<description>
+				<plain>とあるミニマムなダンジョン</plain>
+			</description>
+			<environment>
+				<field name="height" value="-5(m)" />
+			</environment>
+			<geometry xmlns="http://www.xgmtk.org/Lore/Sectioned2D"
+				type="4">
+				<description>
+					<plain>Sectioned2D型ジオメトリ(スクエア、5×5)のエリア</plain>
+				</description>
+				<terrains>
+					<element name="floor" />
+					<element name="wall" />
+				</terrains>
+				<tile terrain="floor" src="floor.jpg" />
+				<tile terrain="wall" src="wall.jpg" />
+				<line>
+					<section terrain="wall" prohibited="true" />
+					<section terrain="wall" prohibited="true" />
+					<section terrain="wall" prohibited="true" />
+					<section terrain="wall" prohibited="true" />
+					<section terrain="wall" prohibited="true" />
+				</line>
+				<line>
+					<section terrain="wall" prohibited="true" />
+					<section terrain="floor" />
+					<section terrain="floor" />
+					<section terrain="floor" />
+					<section terrain="wall" prohibited="true" />
+				</line>
+				<line>
+					<section terrain="wall" prohibited="true" />
+					<section terrain="floor" height="0.3(m)">
+						<description>
+							<plain>祭壇</plain>
+						</description>
+					</section>
+					<section terrain="floor" />
+					<section terrain="floor" />
+					<section terrain="floor">
+						<description>
+							<plain>入口</plain>
+						</description>
+					</section>
+				</line>
+				<line>
+					<section terrain="wall" prohibited="true" />
+					<section terrain="floor" />
+					<section terrain="floor" />
+					<section terrain="floor" />
+					<section terrain="wall" prohibited="true" />
+				</line>
+				<line>
+					<section terrain="wall" prohibited="true" />
+					<section terrain="wall" prohibited="true" />
+					<section terrain="wall" prohibited="true" />
+					<section terrain="wall" prohibited="true" />
+					<section terrain="wall" prohibited="true" />
+				</line>
+			</geometry>
+		</area>
+
+		プレイヤー・キャラクターを「とある地方」の旅立ちの場に配置。
+		<actor actorId="Chihiro" location="/region[start_point]">
+			<features />
+			<items />
+		</actor>
+
+		所有者未定の宝箱は「とあるミニマムなダンジョン」の「祭壇」の位置に…。
+		hide型の秘密情報が設定されているのでkeyとなる情報を入手していないキャラには見えません。
+		<item itemId="chest" location="/region/dungeon[1,2]">
+			<secret mode="hide" key="secret0" />
+			<features />
+		</item>
+
+		「とある地方」から「とあるミニマムなダンジョン」へエリア間移動のためのトリガ。
+		ダンジョンの地点で「探す」をすると次のラウンドにダンジョンに入ります。
+		<trigger name="portal" location="/region[dungeon]" handler="rule.setMoveEvent">
+			<action>
+				<ref from="actions" get="0" />
+			</action>
+			<args>
+				<field ref="triggeredActor" />
+				<field>
+					<location path="/region/dungeon[1,4]" />
+				</field>
+				<field>
+					<literal type="Unit[R]" value="1(R)" />
+				</field>
+			</args>
+		</trigger>
+
+		「とあるミニマムなダンジョン」から「とある地方」からへエリア間移動のためのトリガ。
+		ダンジョンの出口の地点で「探す」をすると次のラウンドにダンジョンから「とある地方」に戻ります。
+		<trigger name="exit" location="/region/dungeon[1,4]" handler="rule.setMoveEvent">
+			<action>
+				<ref from="actions" get="0" />
+			</action>
+			<args>
+				<field ref="triggeredActor" />
+				<field>
+					<location path="/region[dungeon]" />
+				</field>
+				<field>
+					<literal type="Unit[R]" value="1(R)" />
+				</field>
+			</args>
+		</trigger>
+
+		宝箱発見メッセージの表示のためのトリガ。
+		祭壇の位置で「探す」をすると発動します。
+		<trigger name="found" location="/region/dungeon[1,2]" handler="chestFound">
+			<action>
+				<ref from="rule.actions" get="0" />
+			</action>
+			<args>
+				<field ref="triggeredActor" />
+			</args>
+		</trigger>
+
+		宝物発見のトリガのハンドラ。
+		秘密情報をキャラへ渡すことでたからばこを見えるようにするとともにメッセージを表示します。
+		<fun name="chestFoud">
+			<arg type="Actor" name="pc" />
+			<body>
+				チェストに設定されている秘密情報をキャラに受け渡す
+				<call fun="actor.addSecret">
+					<arg>
+						<call fun="chest.getSecret">
+							<arg type="int" value="0" />
+						</call>
+					</arg>
+				</call>
+				<message>
+					<to>
+						<ref from="pc" />
+					</to>
+					<!-- ここではhtmlテキストをメッセージとして送ってみました。 大きな文字と宝箱のイメージがチャット画面に表示されます。 -->
+					<html>
+						<xhtml:body>
+							<xhtml:p>
+								<xhtml:big>宝物が見つかりました！</xhtml:big>
+								<xhtml:img src="TresureChest.jpg" alt="（宝箱のイメージ）" />
+							</xhtml:p>
+						</xhtml:body>
+					</html>
+				</message>
+			</body>
+		</fun>
+	</section>
+
+	<section name="rule">
+		ルールの見本。
+
+		ゲームシステムで利用するキャラクタのfeatures要素の型を決める宣言を含むSystem要素。
+		説明簡単化のためキャラクタとアイテムのfeaturesはデフォルト（空）のまま。
+		環境の要素として高度だけ設定。単位はメートル。メートルはBasics.xmlで既定義の単位です。
+		また、トリガのためのアクション識別情報は文字列型を指定。
+		<system name="samples" trigger_action_type="String">
+			<environment_format>
+				<member name="height" type="Unit[m]"></member>
+			</environment_format>
+		</system>
+
+		まずは基点となるエリアを設置。一点しか存在しないジオメトリPointを使います。
+		<unit dim="min" scale="60(sec)" /><unit dim="hour" scale="60(min)" /><unit dim="R" scale="5(min)" /><variable name="standard_velocity" type="Unit[m/sec]" value="3(m/sec)" /><list name="actions" type="String">
+			<elem value="search">
+				<caption>探す</caption>
+			</elem>
+			<elem value="move">
+				<caption>移動する</caption>
+			</elem>
+			<elem value="sleep">
+				<caption>寝る</caption>
+			</elem>
+		</list><unit dim="m/sec" scale="1.0" /><area name="root" location="/" geometry="http://www.xgmtk.org/Lore/Point"
+			scale="1(m)">
+			<description>
+				<plain>階層的なエリアが成す木構造のルート（根）となるエリア</plain>
+			</description>
+			<environment>
+				<field name="height" value="0m" />
+			</environment>
+			<geometry xmlns="http://www.xgmtk.org/Lore/Point">
+				<description>
+					<plain>Point型ジオメトリのエリア</plain>
+				</description>
+				<point label="0" />
+			</geometry>
+		</area>
+
+		初期化処理。
+		<fun name="init">
+			<body>
+				シナリオ中の全てのキャラクタを取得する
+				<variable name="pc_list">
+					<ref from="system.allPC" />
+				</variable>
+				渡されたすべてのキャラクタに行動予定を尋ねる
+				<for var="pc" list="pc_list">
+					<call fun="choice">
+						<arg ref="pc" />
+					</call>
+				</for>
+			</body>
+		</fun>
+
+		既定義の単位（秒）に基づいて単位を定義。
+		dim属性で導入される単位名（文字列）はsectionの名前空間でなくグローバルな名前空間に属します。
+		また既定義の単位から組み立てられた単位型はファミリーを成し、
+		算術演算では基底となる単位に自動変換されて演算されます。
+		まずは分（min）とそれに基づいて時間（hour）。
+		
+		
+		次いでゲーム内の基本的な時間単位であるラウンドを定義します。
+		ここでは1Rを5分とします。
+		
+		
+		速度の単位を新たに導入。単位名には"/"や"^"を使うことができます。
+		但し単なる識別用の文字列であり組立単位として解釈されることはありません。
+		
+		標準的な移動速度の定義。
+		
+		
+		アクションの選択リスト
+		
+
+		ユーザに次の行動を尋ねる関数。
+		<fun name="choice">
+			<arg type="Actor" name="pc" />
+			<body>
+				リストから選択して貰う
+				<variable name="selected">
+					<select>
+						<!-- ActorIDをJabberIDに変換する -->
+						<to>
+							<ref from="pc.toJabberID" />
+						</to>
+						<message>
+							<plain>どうしますか？</plain>
+						</message>
+						<options ref="actions" />
+					</select>
+				</variable>
+				ユーザの選択したアクションで場合分け。
+				<cases>
+					<case>
+						<cond>
+							<eq>
+								<ref from="actions" get="0" />
+								<ref from="selected" />
+							</eq>
+						</cond>
+						<block>
+							「探す」動作実現のための関数を呼びます。
+							<call fun="searchAction">
+								<arg ref="pc" />
+							</call>
+						</block>
+					</case>
+					<case>
+						<cond>
+							<eq>
+								<ref from="actions" get="1" />
+								<ref from="selected" />
+							</eq>
+						</cond>
+						<block>
+							「移動する」動作実現のための関数を呼びます。
+							<call fun="moveAction">
+								<arg ref="pc" />
+							</call>
+						</block>
+					</case>
+					<default>
+						<block>
+							「寝る」動作実現のための関数を呼びます。
+							<call fun="sleepAction">
+								<arg ref="pc" />
+							</call>
+						</block>
+					</default>
+				</cases>
+			</body>
+		</fun>
+
+		「探す」アクションの実現
+		<fun name="searchAction">
+			<arg type="Actor" name="pc" />
+			<body>
+				キャラクタがアクションしたことをシステムに知らせてトリガをチェックさせる。
+				<call fun="pc.actionTrigger">
+					<arg>
+						<ref from="actions" get="0" />
+					</arg>
+				</call>
+				「探す」の1ラウンド後に再び予定を尋ねるためにイベント登録
+				<call fun="schedule.addEvent">
+					<arg>
+						<add>
+							<ref from="schedule.current" />
+							<literal type="Unit[R]" value="1(R)" />
+						</add>
+					</arg>
+					<arg value="0" />
+					<arg>
+						<function ref="choice" />
+					</arg>
+					<arg>
+						<form>
+							<field ref="pc" />
+						</form>
+					</arg>
+				</call>
+			</body>
+		</fun>
+
+		「寝る」アクションの実現。
+		<fun name="sleepAction">
+			<arg type="Actor" name="pc" />
+			<body>
+				睡眠する時間を尋ねる。
+				<variable name="period_hour">
+					<fill>
+						<!-- ActorIDをJabberIDに変換する -->
+						<to>
+							<ref from="pc.toJabberID" />
+						</to>
+						<message>
+							<plain>何時間寝ますか？</plain>
+						</message>
+						<format>
+							<member name="hour" type="Unit[hour]" />
+						</format>
+					</fill>
+				</variable>
+				ラウンド単位で時間を合わせるため時間をラウンド数に変換。端数切り上げ。
+				<variable name="period">
+					<div mode="ceil">
+						<ref from="period_hour" />
+						<literal type="Unit[R]" value="1(R)" />
+					</div>
+				</variable>
+				睡眠終了後に再び予定を尋ねるためにイベント登録
+				<call fun="schedule.addEvent">
+					<arg>
+						<add>
+							<ref from="schedule.current" />
+							<ref from="period" />
+						</add>
+					</arg>
+					<arg value="0" />
+					<arg>
+						<function ref="choice" />
+					</arg>
+					<arg>
+						<form>
+							<field ref="pc" />
+						</form>
+					</arg>
+				</call>
+			</body>
+		</fun>
+
+		エリア内移動の実現。
+		<fun name="moveAction">
+			<arg type="Actor" name="pc" />
+			<body>
+				キャラクタの現在位置
+				<variable name="current" ref="pc.location" />
+				キャラクタのいるエリア
+				<variable name="area" ref="loc.area" />
+				プレイヤに対してキャラクタのいるエリアのマップを表示して目的地となる地点を選んでもらいます。
+				<variable name="goal">
+					<call fun="area.choice">
+						<arg ref="pc" />
+					</call>
+				</variable>
+				距離の計算
+				<variable name="distance">
+					<call fun="area.distance">
+						<arg ref="goal" />
+						<arg ref="current" />
+					</call>
+				</variable>
+				距離と標準的な移動速度から所要時間を計算します。端数切り捨て。
+				<variable name="period_sec">
+					<unit dim="sec">
+						<div mode="floor">
+							<ref from="distance.toInt" />
+							<ref from="standard_velocity.toInt" />
+						</div>
+					</unit>
+				</variable>
+				ラウンド単位で時間を合わせるため所要時間をラウンド数に変換します。端数切り上げ。
+				<variable name="period">
+					<div mode="ceil">
+						<ref from="period_sec" />
+						<literal type="Unit[R]" value="1(R)" />
+					</div>
+				</variable>
+				移動用のイベント登録関数を呼びます。
+				<call fun="setMoveEvent">
+					<arg ref="pc" />
+					<arg ref="goal" />
+					<arg ref="period" />
+				</call>
+			</body>
+		</fun>
+
+		移動用のイベント登録関数。
+		<fun name="setMoveEvent">
+			<arg type="Actor" name="pc" />
+			<arg type="Location" name="goal" />
+			<arg type="Unit[sec]" name="delay" />
+			<body>
+				指定された時間経過後に移動完了の処理をするためのイベントを登録します。
+				<call fun="schedule.addEvent">
+					<arg>
+						<add>
+							<ref from="schedule.current" />
+							<ref from="delay" />
+						</add>
+					</arg>
+					<arg value="0" />
+					<arg>
+						<function ref="moved" />
+					</arg>
+					<arg>
+						<form>
+							<field ref="pc" />
+							<field ref="goal" />
+						</form>
+					</arg>
+				</call>
+				「移動」完了の1ラウンド後に再び予定を尋ねるためにイベント登録
+				<call fun="schedule.addEvent">
+					<arg>
+						<add>
+							<ref from="schedule.current" />
+							<literal type="Unit[R]" value="1(R)" />
+						</add>
+					</arg>
+					<arg value="0" />
+					<arg>
+						<function ref="choice" />
+					</arg>
+					<arg>
+						<form>
+							<field ref="pc" />
+						</form>
+					</arg>
+				</call>
+			</body>
+		</fun>
+
+		移動完了処理のためのイベントハンドラ。
+		<fun name="moved">
+			<arg type="Actor" name="pc" />
+			<arg type="Location" name="goal" />
+			<body>
+				キャラクタの現在位置を設定します。
+				<call fun="pc.setLocation">
+					<arg ref="goal" />
+				</call>
+			</body>
+		</fun>
+
+	</section>
+</lore>

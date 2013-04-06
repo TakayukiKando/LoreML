@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lore xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.xgmtk.org/Lore"
+	xsi:schemaLocation="http://www.xgmtk.org/Lore Lore.xsd ">
+	<header>
+		<title>Basic type definitions for all Lore files.</title>
+		<author>Chihiro Shiiji</author>
+		<history date="2012-01-01T00:00:00+09:00" modifier="Chihiro_Shiiji@xmpp.xgmtk.org">Created.</history>
+	</header>
+	<section name="units">
+		<unit dim="m" scale="1.0" />
+		<unit dim="kg" scale="1.0" />
+		<unit dim="sec" type="ulong" />
+	</section>
+</lore>
